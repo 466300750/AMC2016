@@ -21,7 +21,7 @@ import java.util.concurrent.Semaphore;
 public class Producer {
 
     private static Random rand = new Random();
-    private static int count = 1000;
+    private static int count = 5;
 
     /**
      * 这是一个模拟堆积消息的程序，生成的消息模型和我们比赛的消息模型是一样的，
@@ -32,25 +32,18 @@ public class Producer {
      */
     public static void main(String[] args) throws MQClientException, InterruptedException {
         DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
-
         //在本地搭建好broker后,记得指定nameServer的地址
-        //producer.setNamesrvAddr("127.0.0.1:9876");
-
+        producer.setNamesrvAddr("192.168.1.51:9876");
         producer.start();
-
         final String [] topics = new String[]{RaceConfig.MqTaobaoTradeTopic, RaceConfig.MqTmallTradeTopic};
         final Semaphore semaphore = new Semaphore(0);
-
         for (int i = 0; i < count; i++) {
             try {
                 final int platform = rand.nextInt(2);
                 final OrderMessage orderMessage = ( platform == 0 ? OrderMessage.createTbaoMessage() : OrderMessage.createTmallMessage());
                 orderMessage.setCreateTime(System.currentTimeMillis());
-
                 byte [] body = RaceUtils.writeKryoObject(orderMessage);
-
                 Message msgToBroker = new Message(topics[platform], body);
-
                 producer.send(msgToBroker, new SendCallback() {
                     public void onSuccess(SendResult sendResult) {
                         System.out.println(orderMessage);
@@ -60,7 +53,6 @@ public class Producer {
                         throwable.printStackTrace();
                     }
                 });
-
                 //Send Pay message
                 PaymentMessage[] paymentMessages = PaymentMessage.createPayMentMsg(orderMessage);
                 double amount = 0;

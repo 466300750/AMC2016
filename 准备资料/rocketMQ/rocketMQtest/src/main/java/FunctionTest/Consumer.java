@@ -15,28 +15,54 @@ import java.util.List;
  */
 public class Consumer {
     public static void main(String[] args) {
-        DefaultMQPushConsumer consumer =
+        DefaultMQPushConsumer pushConsumer =
                 new DefaultMQPushConsumer("PushConsumer");
-        consumer.setNamesrvAddr("192.168.1.51:9876");
+        DefaultMQPushConsumer pullConsumer =
+                new DefaultMQPushConsumer("PullConsumer");
+        DefaultMQPushConsumer bothConsumer =
+                new DefaultMQPushConsumer("BothConsumer");
+        //设置nameserver
+        pushConsumer.setNamesrvAddr("192.168.1.51:9876");
+        pullConsumer.setNamesrvAddr("192.168.1.51:9876");
+        bothConsumer.setNamesrvAddr("192.168.1.51:9876");
         try {
             //订阅PushTopic下Tag为push的消息
-            consumer.subscribe("lelesays", "push");
-            //程序第一次启动从消息队列头取数据
-            consumer.setConsumeFromWhere(
+            pushConsumer.subscribe("lelesays", "tag1");
+            pullConsumer.subscribe("lelesays", "tag2");
+            bothConsumer.subscribe("lelesays", "*");
+            //程序第一次启动从消息队列头取数据,push注册回调接口。
+            pushConsumer.setConsumeFromWhere(
                     ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-            consumer.registerMessageListener(
+            pullConsumer.setConsumeFromWhere(
+                    ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+            bothConsumer.setConsumeFromWhere(
+                    ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+            pushConsumer.registerMessageListener(
                     new MessageListenerConcurrently() {
                         public ConsumeConcurrentlyStatus consumeMessage(
                                 List<MessageExt> list,
                                 ConsumeConcurrentlyContext Context) {
                             Message msg = list.get(0);
-                            System.out.println(msg.toString());
-                            System.out.println(msg.getBody());
+                       //     System.out.println(msg.toString());
+                            System.out.println("tag1:"+new String(msg.getBody()));
                             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
                         }
                     }
             );
-            consumer.start();
+            pushConsumer.start();
+            bothConsumer.registerMessageListener(
+                    new MessageListenerConcurrently() {
+                        public ConsumeConcurrentlyStatus consumeMessage(
+                                List<MessageExt> list,
+                                ConsumeConcurrentlyContext Context) {
+                            Message msg = list.get(0);
+                            //     System.out.println(msg.toString());
+                            System.out.println("tag2:"+new String(msg.getBody()));
+                            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                        }
+                    }
+            );
+            bothConsumer.start();
         } catch (Exception e) {
             e.printStackTrace();
         }

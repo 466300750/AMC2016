@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/AMC2016.iml" filepath="$PROJECT_DIR$/.idea/AMC2016.iml" />
-      <module fileurl="file://$PROJECT_DIR$/rocketMQtest/rocketMQtest.iml" filepath="$PROJECT_DIR$/rocketMQtest/rocketMQtest.iml" />
     </modules>
   </component>
 </project>

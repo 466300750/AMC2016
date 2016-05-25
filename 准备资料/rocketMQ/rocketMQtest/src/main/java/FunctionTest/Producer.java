@@ -15,7 +15,7 @@ public class Producer {
             producer.start();
 
             Message msg = new Message("lelesays",
-                    "push",
+                    "tag1",
                     "1",
                     "郭梦宇过来一下".getBytes());
 
@@ -24,18 +24,9 @@ public class Producer {
                     " result:" + result.getSendStatus());
 
             msg = new Message("lelesays",
-                    "push",
+                    "tag2",
                     "2",
                     "苏越过来一下".getBytes());
-
-            result = producer.send(msg);
-            System.out.println("id:" + result.getMsgId() +
-                    " result:" + result.getSendStatus());
-
-            msg = new Message("lelesays",
-                    "pull",
-                    "1",
-                    "你们俩都过来一下".getBytes());
 
             result = producer.send(msg);
             System.out.println("id:" + result.getMsgId() +
