@@ -14,7 +14,7 @@ import java.util.List;
  * Created by g on 2016/5/25.
  */
 public class Consumer {
-    public static void main(String[] args){
+    public static void main(String[] args) {
         DefaultMQPushConsumer consumer =
                 new DefaultMQPushConsumer("PushConsumer");
         consumer.setNamesrvAddr("192.168.1.51:9876");

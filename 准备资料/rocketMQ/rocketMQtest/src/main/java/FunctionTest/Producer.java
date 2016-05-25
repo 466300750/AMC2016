@@ -8,7 +8,7 @@ import com.alibaba.rocketmq.common.message.Message;
  * Created by g on 2016/5/25.
  */
 public class Producer {
-    public static void main(String[] args){
+    public static void main(String[] args) {
         DefaultMQProducer producer = new DefaultMQProducer("Producer");
         producer.setNamesrvAddr("192.168.1.51:9876");
         try {
@@ -42,7 +42,7 @@ public class Producer {
                     " result:" + result.getSendStatus());
         } catch (Exception e) {
             e.printStackTrace();
-        }finally{
+        } finally {
             producer.shutdown();
         }
     }
