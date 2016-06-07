@@ -14,9 +14,9 @@ public class PaymentMessage implements Serializable{
 
     private static final long serialVersionUID = -4721410670774102273L;
 
-    private long orderId; //订单ID
+    private long orderId; //该条支付消息属于的订单 ID 标识
 
-    private double payAmount; //金额
+    private double payAmount; //支付金额，<=订单的总价格
 
     /**
      * Money来源

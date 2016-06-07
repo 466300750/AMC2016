@@ -22,6 +22,15 @@ public class OrderMessage implements Serializable{
     private OrderMessage() {
 
     }
+    
+    public OrderMessage(OrderMessage orderMessage) {
+    	this.orderId = orderMessage.orderId;
+    	this.buyerId = orderMessage.buyerId;
+    	this.productId = orderMessage.productId;
+    	this.salerId = orderMessage.salerId;
+    	this.createTime  = orderMessage.createTime;
+    	this.totalPrice = orderMessage.totalPrice;
+    }
 
     public static OrderMessage createTbaoMessage() {
         OrderMessage msg =  new OrderMessage();
