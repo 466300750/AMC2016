@@ -119,8 +119,8 @@ public class Producer {
             e.printStackTrace();
         }
         producer.shutdown();
-        System.out.println("发送完成");
-        Thread.sleep(5*1000);
+        System.out.println("发送完成:"+System.currentTimeMillis());
+        Thread.sleep(200*1000);
         judger.startJudge();
     }
 }

@@ -80,7 +80,7 @@ public class MessageClassifySpout implements IRichSpout {
 					byte[] body = msg.getBody();
 					if (body.length == 2 && body[0] == 0 && body[1] == 0) {
 						// Info: 生产者停止生成数据, 并不意味着马上结束
-						System.out.println("Got the end signal");
+						System.out.println("Tmall Got the end signal:"+System.currentTimeMillis());
 						continue;
 					}
 					
@@ -100,7 +100,7 @@ public class MessageClassifySpout implements IRichSpout {
 					byte[] body = msg.getBody();
 					if (body.length == 2 && body[0] == 0 && body[1] == 0) {
 						// Info: 生产者停止生成数据, 并不意味着马上结束
-						System.out.println("Got the end signal");
+						System.out.println("taobao Got the end signal："+System.currentTimeMillis());
 						continue;
 					}
 					OrderMessage orderMessage = RaceUtils.readKryoObject(OrderMessage.class, body);
@@ -118,9 +118,11 @@ public class MessageClassifySpout implements IRichSpout {
 				for (MessageExt msg : msgs) {
 					byte[] body = msg.getBody();
 					if (body.length == 2 && body[0] == 0 && body[1] == 0) {
+						System.out.println("Pay Got the end signal："+System.currentTimeMillis());
 						// Info: 生产者停止生成数据, 并不意味着马上结束
 						_collector.emit("Taobao_Stream_Id", new Values("0x00"));
 						_collector.emit("Tmall_Stream_Id", new Values("0x00"));
+						continue;
 					}
 					PaymentMessage paymentMessage = RaceUtils.readKryoObject(PaymentMessage.class, body);
 
