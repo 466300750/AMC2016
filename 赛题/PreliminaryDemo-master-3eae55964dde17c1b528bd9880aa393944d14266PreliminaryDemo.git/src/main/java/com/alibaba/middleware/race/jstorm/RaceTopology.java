@@ -46,7 +46,7 @@ public class RaceTopology {
 
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology(topologyName, conf, builder.createTopology());
-        Thread.sleep(20*60*1000);
+        Thread.sleep(1000);
         cluster.killTopology(topologyName);
         cluster.shutdown();
 //        try {
