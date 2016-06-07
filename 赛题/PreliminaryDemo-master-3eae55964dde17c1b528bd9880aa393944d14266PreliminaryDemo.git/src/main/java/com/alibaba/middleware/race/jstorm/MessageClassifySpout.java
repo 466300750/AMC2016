@@ -122,8 +122,8 @@ public class MessageClassifySpout implements IRichSpout {
 					byte[] body = msg.getBody();
 					if (body.length == 2 && body[0] == 0 && body[1] == 0) {
 						// Info: 生产者停止生成数据, 并不意味着马上结束
-						System.out.println("Got the end signal");
-						continue;
+						_collector.emit("Taobao_Stream_Id", new Values("0x00"));
+						_collector.emit("Tmall_Stream_Id", new Values("0x00"));
 					}
 					PaymentMessage paymentMessage = RaceUtils.readKryoObject(PaymentMessage.class, body);
 //					System.out.println("paymentMessage"+paymentMessage);

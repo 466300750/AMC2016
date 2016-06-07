@@ -93,18 +93,18 @@ public class Producer {
         semaphore.acquire(count);
 
         //用一个short标识生产者停止生产数据
-//        byte [] zero = new  byte[]{0,0};
-//        Message endMsgTB = new Message(RaceConfig.MqTaobaoTradeTopic, zero);
-//        Message endMsgTM = new Message(RaceConfig.MqTmallTradeTopic, zero);
-//        Message endMsgPay = new Message(RaceConfig.MqPayTopic, zero);
-//
-//        try {
-//            producer.send(endMsgTB);
-//            producer.send(endMsgTM);
-//            producer.send(endMsgPay);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
+        byte [] zero = new  byte[]{0,0};
+        Message endMsgTB = new Message(RaceConfig.MqTaobaoTradeTopic, zero);
+        Message endMsgTM = new Message(RaceConfig.MqTmallTradeTopic, zero);
+        Message endMsgPay = new Message(RaceConfig.MqPayTopic, zero);
+
+        try {
+            producer.send(endMsgTB);
+            producer.send(endMsgTM);
+            producer.send(endMsgPay);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         producer.shutdown();
     }
 }

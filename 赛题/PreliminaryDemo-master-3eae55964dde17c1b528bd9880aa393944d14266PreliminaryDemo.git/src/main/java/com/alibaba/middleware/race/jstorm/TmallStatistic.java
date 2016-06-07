@@ -20,21 +20,32 @@ public class TmallStatistic implements IRichBolt {
 
     @Override
     public void execute(Tuple tuple) {
-    	PaymentMessage payment = (PaymentMessage) tuple.getValue(0);
-        long createTime = (payment.getCreateTime()/1000/60)*60;
-        if(!res.containsKey(createTime)) {
-        	res.put(createTime, payment.getPayAmount());
-        }else {
-        	res.put(createTime, res.get(createTime)+payment.getPayAmount());
-        }
-        
-        if(createTime != prePayTime) { //已经到了下一个一分钟,把数据传出，同时删掉map中对数据的存储       	
-        	if(res.containsKey(prePayTime)){
-        		collector.emit(new Values(prePayTime, res.get(prePayTime)));
-        		res.remove(prePayTime);
-        	}        		
-        	prePayTime = createTime;
-        }
+    	if (tuple.getValue(0).equals("0x00")) {//收到流结束的标志
+			if(prePayTime == 0) {//第一次就直接收到流结束标志
+				return; 
+			} else { //把最后一分钟内的消息推送出去
+				if (res.containsKey(prePayTime)) {
+					collector.emit(new Values(prePayTime, res.get(prePayTime)));
+					res.remove(prePayTime);
+				}
+			}			
+		} else {
+			PaymentMessage payment = (PaymentMessage) tuple.getValue(0);
+			long createTime = (payment.getCreateTime() / 1000 / 60) * 60;
+			if (!res.containsKey(createTime)) {
+				res.put(createTime, payment.getPayAmount());
+			} else {
+				res.put(createTime, res.get(createTime) + payment.getPayAmount());
+			}
+
+			if (createTime != prePayTime) { // 已经到了下一个一分钟,把数据传出，同时删掉map中对数据的存储
+				if (res.containsKey(prePayTime)) {
+					collector.emit(new Values(prePayTime, res.get(prePayTime)));
+					res.remove(prePayTime);
+				}
+				prePayTime = createTime;
+			}
+		}
     }
 
     @Override
