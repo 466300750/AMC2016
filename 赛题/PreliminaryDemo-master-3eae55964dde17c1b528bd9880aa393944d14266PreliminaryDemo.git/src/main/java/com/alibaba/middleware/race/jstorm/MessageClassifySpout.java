@@ -1,15 +1,11 @@
 package com.alibaba.middleware.race.jstorm;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.jstorm.utils.JStormUtils;
+import backtype.storm.spout.SpoutOutputCollector;
+import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.IRichSpout;
+import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.Values;
 import com.alibaba.middleware.race.RaceConfig;
 import com.alibaba.middleware.race.RaceUtils;
 import com.alibaba.middleware.race.model.OrderMessage;
@@ -21,13 +17,13 @@ import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichSpout;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Values;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class MessageClassifySpout implements IRichSpout {
 	private static Logger LOG = LoggerFactory.getLogger(MessageClassifySpout.class);
@@ -84,7 +80,7 @@ public class MessageClassifySpout implements IRichSpout {
 					byte[] body = msg.getBody();
 					if (body.length == 2 && body[0] == 0 && body[1] == 0) {
 						// Info: 生产者停止生成数据, 并不意味着马上结束
-						System.out.println("Got the end signal");
+						System.out.println("Tmall Got the end signal:"+System.currentTimeMillis());
 						continue;
 					}
 					
@@ -104,10 +100,11 @@ public class MessageClassifySpout implements IRichSpout {
 					byte[] body = msg.getBody();
 					if (body.length == 2 && body[0] == 0 && body[1] == 0) {
 						// Info: 生产者停止生成数据, 并不意味着马上结束
-						System.out.println("Got the end signal");
+						System.out.println("taobao Got the end signal："+System.currentTimeMillis());
 						continue;
 					}
 					OrderMessage orderMessage = RaceUtils.readKryoObject(OrderMessage.class, body);
+
 					orderIdTypeMap.put(orderMessage.getOrderId(), (byte) 0x01);
 //					System.out.println("taobaoConsumer"+orderMessage);
 				}
@@ -121,11 +118,14 @@ public class MessageClassifySpout implements IRichSpout {
 				for (MessageExt msg : msgs) {
 					byte[] body = msg.getBody();
 					if (body.length == 2 && body[0] == 0 && body[1] == 0) {
+						System.out.println("Pay Got the end signal："+System.currentTimeMillis());
 						// Info: 生产者停止生成数据, 并不意味着马上结束
 						_collector.emit("Taobao_Stream_Id", new Values("0x00"));
 						_collector.emit("Tmall_Stream_Id", new Values("0x00"));
+						continue;
 					}
 					PaymentMessage paymentMessage = RaceUtils.readKryoObject(PaymentMessage.class, body);
+
 //					System.out.println("paymentMessage"+paymentMessage);
 					// 一定能保证订单消息先到达吗？
 					long orderId = paymentMessage.getOrderId();

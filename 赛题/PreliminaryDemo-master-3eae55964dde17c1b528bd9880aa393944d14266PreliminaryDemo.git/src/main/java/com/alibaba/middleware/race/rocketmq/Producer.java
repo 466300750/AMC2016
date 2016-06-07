@@ -2,6 +2,9 @@
 package com.alibaba.middleware.race.rocketmq;
 
 import com.alibaba.middleware.race.RaceConfig;
+import com.alibaba.middleware.race.jstorm.RaceTopology;
+import com.alibaba.middleware.race.judge.MsgType;
+import com.alibaba.middleware.race.judge.judger;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
 import com.alibaba.rocketmq.client.producer.SendCallback;
@@ -21,7 +24,7 @@ import java.util.concurrent.Semaphore;
 public class Producer {
 
     private static Random rand = new Random();
-    private static int count = 1000;
+    private static int count = 20;
 
     /**
      * 这是一个模拟堆积消息的程序，生成的消息模型和我们比赛的消息模型是一样的，
@@ -31,6 +34,7 @@ public class Producer {
      * @throws InterruptedException
      */
     public static void main(String[] args) throws MQClientException, InterruptedException {
+        judger.open=true;
         DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
         //在本地搭建好broker后,记得指定nameServer的地址
         producer.setNamesrvAddr("192.168.1.51:9876");
@@ -38,16 +42,23 @@ public class Producer {
         final String [] topics = new String[]{RaceConfig.MqTaobaoTradeTopic, RaceConfig.MqTmallTradeTopic};
         final Semaphore semaphore = new Semaphore(0);
         for (int i = 0; i < count; i++) {
-        	Thread.sleep(500);
+        	Thread.sleep(RaceTopology.Interval/5);
             try {
                 final int platform = rand.nextInt(2);
                 final OrderMessage orderMessage = ( platform == 0 ? OrderMessage.createTbaoMessage() : OrderMessage.createTmallMessage());
+                if(platform==0){
+                    //钩子
+                    judger.getMsg(orderMessage, MsgType.TaobaoOrderMsg);
+                }else {
+                    //钩子
+                    judger.getMsg(orderMessage, MsgType.TmallOrderMsg);
+                }
                 orderMessage.setCreateTime(System.currentTimeMillis());
                 byte [] body = RaceUtils.writeKryoObject(orderMessage);
                 Message msgToBroker = new Message(topics[platform], body);
                 producer.send(msgToBroker, new SendCallback() {
                     public void onSuccess(SendResult sendResult) {
-                        System.out.println(orderMessage);
+                        System.out.println(platform+":"+orderMessage);
                         semaphore.release();
                     }
                     public void onException(Throwable throwable) {
@@ -58,6 +69,8 @@ public class Producer {
                 PaymentMessage[] paymentMessages = PaymentMessage.createPayMentMsg(orderMessage);
                 double amount = 0;
                 for (final PaymentMessage paymentMessage : paymentMessages) {
+                    //钩子
+                    judger.getMsg(paymentMessage, MsgType.PaymentMsg);
                     int retVal = Double.compare(paymentMessage.getPayAmount(), 0);
                     if (retVal < 0) {
                         throw new RuntimeException("price < 0 !!!!!!!!");
@@ -106,5 +119,8 @@ public class Producer {
             e.printStackTrace();
         }
         producer.shutdown();
+        System.out.println("发送完成:"+System.currentTimeMillis());
+        Thread.sleep(200*1000);
+        judger.startJudge();
     }
 }

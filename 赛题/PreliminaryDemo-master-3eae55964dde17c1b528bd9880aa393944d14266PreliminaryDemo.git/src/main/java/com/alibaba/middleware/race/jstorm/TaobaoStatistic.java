@@ -1,10 +1,5 @@
 package com.alibaba.middleware.race.jstorm;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import com.alibaba.middleware.race.model.PaymentMessage;
-
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
@@ -12,6 +7,10 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import com.alibaba.middleware.race.model.PaymentMessage;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class TaobaoStatistic implements IRichBolt {
 	OutputCollector collector;
@@ -31,7 +30,7 @@ public class TaobaoStatistic implements IRichBolt {
 			}			
 		} else {
 			PaymentMessage payment = (PaymentMessage) tuple.getValue(0);
-			long createTime = (payment.getCreateTime() / 1000 / 60) * 60;
+			long createTime = (payment.getCreateTime() / RaceTopology.Interval) * 60;
 			if (!res.containsKey(createTime)) {
 				res.put(createTime, payment.getPayAmount());
 			} else {

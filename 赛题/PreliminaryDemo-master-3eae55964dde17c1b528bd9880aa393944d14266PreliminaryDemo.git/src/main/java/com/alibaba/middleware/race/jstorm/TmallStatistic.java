@@ -7,11 +7,10 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import com.alibaba.middleware.race.model.PaymentMessage;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import com.alibaba.middleware.race.model.PaymentMessage;
 
 public class TmallStatistic implements IRichBolt {
     OutputCollector collector;
