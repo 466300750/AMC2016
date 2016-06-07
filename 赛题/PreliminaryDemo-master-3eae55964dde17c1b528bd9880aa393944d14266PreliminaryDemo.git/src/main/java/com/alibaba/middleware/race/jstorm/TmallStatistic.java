@@ -8,28 +8,44 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
+import java.util.HashMap;
 import java.util.Map;
 
+import com.alibaba.middleware.race.model.PaymentMessage;
 
-public class SplitSentence implements IRichBolt {
+public class TmallStatistic implements IRichBolt {
     OutputCollector collector;
+    Map<Long, Double> res = new HashMap<Long, Double>();
+    long prePayTime = 0;
 
     @Override
     public void execute(Tuple tuple) {
-        String sentence = tuple.getString(0);
-        for (String word : sentence.split("\\s+")) {
-            collector.emit(new Values(word));
+    	PaymentMessage payment = (PaymentMessage) tuple.getValue(0);
+        long createTime = (payment.getCreateTime()/1000/60)*60;
+        if(!res.containsKey(createTime)) {
+        	res.put(createTime, payment.getPayAmount());
+        }else {
+        	res.put(createTime, res.get(createTime)+payment.getPayAmount());
+        }
+        
+        if(createTime != prePayTime) { //已经到了下一个一分钟,把数据传出，同时删掉map中对数据的存储       	
+        	if(res.containsKey(prePayTime)){
+        		collector.emit(new Values(prePayTime, res.get(prePayTime)));
+        		res.remove(prePayTime);
+        	}        		
+        	prePayTime = createTime;
         }
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("word"));
+    	declarer.declare(new Fields("minunet", "amount"));
     }
 
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
+
     }
 
     @Override

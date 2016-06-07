@@ -11,13 +11,13 @@ public class RaceConfig implements Serializable {
 
 
     //这些jstorm/rocketMq/tair 的集群配置信息，这些配置信息在正式提交代码前会被公布
-    public static String JstormTopologyName = "xxx";
+    public static String JstormTopologyName = "test";
     public static String MetaConsumerGroup = "xxx";
     public static String MqPayTopic = "MiddlewareRaceTestData_Pay";
     public static String MqTmallTradeTopic = "MiddlewareRaceTestData_TMOrder";
     public static String MqTaobaoTradeTopic = "MiddlewareRaceTestData_TBOrder";
-    public static String TairConfigServer = "xxx";
-    public static String TairSalveConfigServer = "xxx";
-    public static String TairGroup = "xxx";
+    public static String TairConfigServer = "192.168.1.235:51980";
+    public static String TairSalveConfigServer = "192.168.1.150:51980";
+    public static String TairGroup = "group_1";
     public static Integer TairNamespace = 1;
 }

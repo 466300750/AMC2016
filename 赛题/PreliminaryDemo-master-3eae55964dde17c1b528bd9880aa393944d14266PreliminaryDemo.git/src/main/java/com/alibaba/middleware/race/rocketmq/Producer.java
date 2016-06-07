@@ -21,7 +21,7 @@ import java.util.concurrent.Semaphore;
 public class Producer {
 
     private static Random rand = new Random();
-    private static int count = 5;
+    private static int count = 1000;
 
     /**
      * 这是一个模拟堆积消息的程序，生成的消息模型和我们比赛的消息模型是一样的，
@@ -38,6 +38,7 @@ public class Producer {
         final String [] topics = new String[]{RaceConfig.MqTaobaoTradeTopic, RaceConfig.MqTmallTradeTopic};
         final Semaphore semaphore = new Semaphore(0);
         for (int i = 0; i < count; i++) {
+        	Thread.sleep(500);
             try {
                 final int platform = rand.nextInt(2);
                 final OrderMessage orderMessage = ( platform == 0 ? OrderMessage.createTbaoMessage() : OrderMessage.createTmallMessage());
@@ -92,18 +93,18 @@ public class Producer {
         semaphore.acquire(count);
 
         //用一个short标识生产者停止生产数据
-        byte [] zero = new  byte[]{0,0};
-        Message endMsgTB = new Message(RaceConfig.MqTaobaoTradeTopic, zero);
-        Message endMsgTM = new Message(RaceConfig.MqTmallTradeTopic, zero);
-        Message endMsgPay = new Message(RaceConfig.MqPayTopic, zero);
-
-        try {
-            producer.send(endMsgTB);
-            producer.send(endMsgTM);
-            producer.send(endMsgPay);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        byte [] zero = new  byte[]{0,0};
+//        Message endMsgTB = new Message(RaceConfig.MqTaobaoTradeTopic, zero);
+//        Message endMsgTM = new Message(RaceConfig.MqTmallTradeTopic, zero);
+//        Message endMsgPay = new Message(RaceConfig.MqPayTopic, zero);
+//
+//        try {
+//            producer.send(endMsgTB);
+//            producer.send(endMsgTM);
+//            producer.send(endMsgPay);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         producer.shutdown();
     }
 }

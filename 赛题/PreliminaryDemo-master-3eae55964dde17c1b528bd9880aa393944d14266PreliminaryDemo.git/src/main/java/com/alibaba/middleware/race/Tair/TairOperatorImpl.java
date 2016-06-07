@@ -43,5 +43,6 @@ public class TairOperatorImpl {
         Double money = 100.0;
         //–¥»Îtair
         tairOperator.write(RaceConfig.prex_tmall + minuteTime, money);
+        System.out.println(tairOperator.get(RaceConfig.prex_tmall + minuteTime));
     }
 }

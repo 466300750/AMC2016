@@ -1,12 +1,13 @@
 package com.alibaba.middleware.race.jstorm;
 
-import backtype.storm.Config;
-import backtype.storm.StormSubmitter;
-import backtype.storm.topology.TopologyBuilder;
-import backtype.storm.tuple.Fields;
-import com.alibaba.middleware.race.RaceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.alibaba.middleware.race.RaceConfig;
+
+import backtype.storm.Config;
+import backtype.storm.LocalCluster;
+import backtype.storm.topology.TopologyBuilder;
 
 
 /**
@@ -27,23 +28,32 @@ public class RaceTopology {
 
     public static void main(String[] args) throws Exception {
 
+    	//topology所有自定义的配置均放入这个conf
         Config conf = new Config();
-        int spout_Parallelism_hint = 1;
-        int split_Parallelism_hint = 2;
-        int count_Parallelism_hint = 2;
+        int classify_Parallelism_hint = 1;
+        int statistic_Parallelism_hint = 2;
+        int tair_Parallelism_hint = 2;
 
         TopologyBuilder builder = new TopologyBuilder();
 
-        builder.setSpout("spout", new RaceSentenceSpout(), spout_Parallelism_hint);
-        builder.setBolt("split", new SplitSentence(), split_Parallelism_hint).shuffleGrouping("spout");
-        builder.setBolt("count", new WordCount(), count_Parallelism_hint).fieldsGrouping("split", new Fields("word"));
+        builder.setSpout("classify", new MessageClassifySpout(), classify_Parallelism_hint);
+      //表示接收spout的数据，并且以shuffle方式，即每个spout随机轮询发送tuple到下一级bolt中
+        builder.setBolt("tmall", new TaobaoStatistic(), statistic_Parallelism_hint).shuffleGrouping("classify", "Tmall_Stream_Id");
+        builder.setBolt("taobao", new TmallStatistic(), statistic_Parallelism_hint).shuffleGrouping("classify", "Taobao_Stream_Id");
+        builder.setBolt("taobaoTair", new TaobaoTair(), tair_Parallelism_hint).shuffleGrouping("taobao");
+        builder.setBolt("tmallTair", new TmallTair(), tair_Parallelism_hint).shuffleGrouping("tmall");
         String topologyName = RaceConfig.JstormTopologyName;
 
-        try {
-            StormSubmitter.submitTopology(topologyName, conf, builder.createTopology());
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        LocalCluster cluster = new LocalCluster();
+        cluster.submitTopology(topologyName, conf, builder.createTopology());
+        Thread.sleep(20*60*1000);
+        cluster.killTopology(topologyName);
+        cluster.shutdown();
+//        try {
+//            StormSubmitter.submitTopology(topologyName, conf, builder.createTopology());
+//        } catch (Exception e) {
+//            // TODO Auto-generated catch block
+//            e.printStackTrace();
+//        }
     }
 }
