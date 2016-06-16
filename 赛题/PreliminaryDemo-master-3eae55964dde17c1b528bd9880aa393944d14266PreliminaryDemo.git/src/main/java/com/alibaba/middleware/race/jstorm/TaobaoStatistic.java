@@ -16,6 +16,8 @@ public class TaobaoStatistic implements IRichBolt {
 	OutputCollector collector;
 	Map<Long, Double> res = new HashMap<Long, Double>();
 	long prePayTime = 0;
+	boolean first = true;
+//	int seq = 0;
 
 	@Override
 	public void execute(Tuple tuple) {
@@ -23,7 +25,9 @@ public class TaobaoStatistic implements IRichBolt {
 			if(prePayTime == 0) {//第一次就直接收到流结束标志
 				return; 
 			} else { //把最后一分钟内的消息推送出去
+				
 				if (res.containsKey(prePayTime)) {
+//					System.out.println("taobao结束  "+prePayTime+": "+res.get(prePayTime));
 					collector.emit(new Values(prePayTime, res.get(prePayTime)));
 					res.remove(prePayTime);
 				}
@@ -31,14 +35,15 @@ public class TaobaoStatistic implements IRichBolt {
 		} else {
 			PaymentMessage payment = (PaymentMessage) tuple.getValue(0);
 			long createTime = (payment.getCreateTime() / RaceTopology.Interval) * 60;
-			if (!res.containsKey(createTime)) {
-				res.put(createTime, payment.getPayAmount());
-			} else {
-				res.put(createTime, res.get(createTime) + payment.getPayAmount());
-			}
-
-			if (createTime != prePayTime) { // 已经到了下一个一分钟,把数据传出，同时删掉map中对数据的存储
+			Double amount = res.get(createTime);
+			res.put(createTime, amount==null ? payment.getPayAmount() : amount+payment.getPayAmount());
+			if(first) {
+				first = false;
+				prePayTime = createTime;
+			}else if(createTime != prePayTime ) { // 已经到了下一个一分钟,把数据传出，同时删掉map中对数据的存储
 				if (res.containsKey(prePayTime)) {
+//					seq++;
+//					System.out.println("taobao "+seq+": "+prePayTime+": "+res.get(prePayTime));
 					collector.emit(new Values(prePayTime, res.get(prePayTime)));
 					res.remove(prePayTime);
 				}
@@ -49,7 +54,7 @@ public class TaobaoStatistic implements IRichBolt {
 
 	@Override
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {
-		declarer.declare(new Fields("minunet", "amount"));
+		declarer.declare(new Fields("minute", "amount"));
 	}
 
 	@Override

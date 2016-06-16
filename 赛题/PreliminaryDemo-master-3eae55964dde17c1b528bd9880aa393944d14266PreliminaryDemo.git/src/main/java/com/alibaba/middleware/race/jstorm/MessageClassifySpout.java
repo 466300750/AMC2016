@@ -1,11 +1,17 @@
 package com.alibaba.middleware.race.jstorm;
 
-import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichSpout;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Values;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.middleware.race.RaceConfig;
 import com.alibaba.middleware.race.RaceUtils;
 import com.alibaba.middleware.race.model.OrderMessage;
@@ -17,13 +23,14 @@ import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
 import com.alibaba.rocketmq.common.message.MessageExt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.esotericsoftware.minlog.Log;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import backtype.storm.spout.SpoutOutputCollector;
+import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.IRichSpout;
+import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.Values;
 
 public class MessageClassifySpout implements IRichSpout {
 	private static Logger LOG = LoggerFactory.getLogger(MessageClassifySpout.class);
@@ -37,6 +44,17 @@ public class MessageClassifySpout implements IRichSpout {
 	DefaultMQPushConsumer paymentConsumer;
 	Map<Long, Byte> orderIdTypeMap = new HashMap<Long, Byte>();
 	Map<Long, OrderMessage> orderIdMessageMap = new HashMap<Long, OrderMessage>();
+	List<PaymentMessage> paymentMessageList = new LinkedList<PaymentMessage>();
+	
+	{
+    	try {
+			PrintStream ps = new PrintStream(new FileOutputStream("res.txt"));
+			System.setOut(ps);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
 
 
 	// open是当task起来后执行的初始化动作
@@ -80,14 +98,27 @@ public class MessageClassifySpout implements IRichSpout {
 					byte[] body = msg.getBody();
 					if (body.length == 2 && body[0] == 0 && body[1] == 0) {
 						// Info: 生产者停止生成数据, 并不意味着马上结束
-						System.out.println("Tmall Got the end signal:"+System.currentTimeMillis());
+//						System.out.println("Tmall Got the end signal:"+System.currentTimeMillis());
 						continue;
 					}
 					
 					OrderMessage orderMessage = RaceUtils.readKryoObject(OrderMessage.class, body);
-					orderIdTypeMap.put(orderMessage.getOrderId(), (byte) 0x00);
-					orderIdMessageMap.put(orderMessage.getOrderId(), new OrderMessage(orderMessage));
-//					System.out.println("tmallConsumer"+orderMessage);
+					
+					if(paymentMessageList.size() > 0) {
+						Iterator<PaymentMessage> it = paymentMessageList.iterator();
+						while(it.hasNext()) {
+							PaymentMessage paymentMessage = it.next();
+							if(orderMessage.getOrderId() == paymentMessage.getOrderId()) {
+								_collector.emit("Tmall_Stream_Id", new Values(paymentMessage));
+								orderMessage.setTotalPrice(orderMessage.getTotalPrice()-paymentMessage.getPayAmount());
+								it.remove();;
+							}								
+						}																										
+					}
+					if(orderMessage.getTotalPrice() != 0) {
+						orderIdTypeMap.put(orderMessage.getOrderId(), (byte) 0x00);
+						orderIdMessageMap.put(orderMessage.getOrderId(), orderMessage);
+					}
 				}
 				return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
 			}
@@ -100,13 +131,25 @@ public class MessageClassifySpout implements IRichSpout {
 					byte[] body = msg.getBody();
 					if (body.length == 2 && body[0] == 0 && body[1] == 0) {
 						// Info: 生产者停止生成数据, 并不意味着马上结束
-						System.out.println("taobao Got the end signal："+System.currentTimeMillis());
+//						System.out.println("taobao Got the end signal："+System.currentTimeMillis());
 						continue;
 					}
 					OrderMessage orderMessage = RaceUtils.readKryoObject(OrderMessage.class, body);
-
-					orderIdTypeMap.put(orderMessage.getOrderId(), (byte) 0x01);
-//					System.out.println("taobaoConsumer"+orderMessage);
+					if(paymentMessageList.size() > 0) {
+						Iterator<PaymentMessage> it = paymentMessageList.iterator();
+						while(it.hasNext()) {
+							PaymentMessage paymentMessage = it.next();
+							if(orderMessage.getOrderId() == paymentMessage.getOrderId()) {
+								_collector.emit("Taobao_Stream_Id", new Values(paymentMessage));
+								orderMessage.setTotalPrice(orderMessage.getTotalPrice()-paymentMessage.getPayAmount());
+								it.remove();
+							}								
+						}	
+					}
+					if(orderMessage.getTotalPrice() != 0) {
+						orderIdTypeMap.put(orderMessage.getOrderId(), (byte) 0x01);
+						orderIdMessageMap.put(orderMessage.getOrderId(), orderMessage);
+					}
 				}
 				return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
 			}
@@ -118,7 +161,7 @@ public class MessageClassifySpout implements IRichSpout {
 				for (MessageExt msg : msgs) {
 					byte[] body = msg.getBody();
 					if (body.length == 2 && body[0] == 0 && body[1] == 0) {
-						System.out.println("Pay Got the end signal："+System.currentTimeMillis());
+//						System.out.println("Pay Got the end signal："+System.currentTimeMillis());
 						// Info: 生产者停止生成数据, 并不意味着马上结束
 						_collector.emit("Taobao_Stream_Id", new Values("0x00"));
 						_collector.emit("Tmall_Stream_Id", new Values("0x00"));
@@ -126,29 +169,32 @@ public class MessageClassifySpout implements IRichSpout {
 					}
 					PaymentMessage paymentMessage = RaceUtils.readKryoObject(PaymentMessage.class, body);
 
-//					System.out.println("paymentMessage"+paymentMessage);
-					// 一定能保证订单消息先到达吗？
+
 					long orderId = paymentMessage.getOrderId();
-					byte type = orderIdTypeMap.get(orderId);
-					if (type == 0x01) { // 01代表淘宝，00代表天猫，分流处理
-						_collector.emit("Taobao_Stream_Id", new Values(paymentMessage));		
-					} else if (type == 0x00) {
-						_collector.emit("Tmall_Stream_Id", new Values(paymentMessage));	
-					} else {
-						LOG.error("未知消息类型");
-					}
-					Iterator<Map.Entry<Long, OrderMessage>> entries = orderIdMessageMap.entrySet().iterator();
-					while (entries.hasNext()) {
-						Map.Entry<Long, OrderMessage> entry = entries.next();
-						if (entry.getKey() == paymentMessage.getOrderId()) {
-							if (entry.getValue().getTotalPrice() != paymentMessage.getPayAmount()) {
-								double oldPrice = entry.getValue().getTotalPrice();
-								entry.getValue().setTotalPrice(oldPrice - paymentMessage.getPayAmount());
-							} else { //这是关于某个订单的最后一条付款消息
-								orderIdTypeMap.remove(entry.getKey());
-								entries.remove();
+					if(orderIdTypeMap.containsKey(orderId)) {
+						byte type = orderIdTypeMap.get(orderId);
+						if (type == 0x01) { // 01代表淘宝，00代表天猫，分流处理
+							_collector.emit("Taobao_Stream_Id", new Values(paymentMessage));		
+						} else if (type == 0x00) {
+							_collector.emit("Tmall_Stream_Id", new Values(paymentMessage));	
+						} else {
+							Log.error("未知消息类型");
+						}
+						Iterator<Map.Entry<Long, OrderMessage>> entries = orderIdMessageMap.entrySet().iterator();
+						while (entries.hasNext()) {
+							Map.Entry<Long, OrderMessage> entry = entries.next();
+							if (entry.getKey() == paymentMessage.getOrderId()) {
+								if (entry.getValue().getTotalPrice() != paymentMessage.getPayAmount()) {
+									double oldPrice = entry.getValue().getTotalPrice();
+									entry.getValue().setTotalPrice(oldPrice - paymentMessage.getPayAmount());
+								} else { //这是关于某个订单的最后一条付款消息
+									orderIdTypeMap.remove(entry.getKey());
+									entries.remove();
+								}
 							}
 						}
+					}else {
+						paymentMessageList.add(paymentMessage);
 					}
 				}
 				return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;

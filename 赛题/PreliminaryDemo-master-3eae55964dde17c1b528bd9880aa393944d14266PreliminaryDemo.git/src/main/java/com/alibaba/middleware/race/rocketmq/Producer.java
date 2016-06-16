@@ -24,7 +24,7 @@ import java.util.concurrent.Semaphore;
 public class Producer {
 
     private static Random rand = new Random();
-    private static int count = 20;
+    private static int count = 10;
 
     /**
      * 这是一个模拟堆积消息的程序，生成的消息模型和我们比赛的消息模型是一样的，
@@ -120,7 +120,7 @@ public class Producer {
         }
         producer.shutdown();
         System.out.println("发送完成:"+System.currentTimeMillis());
-        Thread.sleep(200*1000);
+        Thread.sleep(20*1000);
         judger.startJudge();
     }
 }

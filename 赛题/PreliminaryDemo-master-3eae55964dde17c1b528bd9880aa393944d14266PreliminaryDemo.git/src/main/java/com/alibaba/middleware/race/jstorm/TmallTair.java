@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Map;
 
 import com.alibaba.middleware.race.RaceConfig;
+import com.taobao.tair.DataEntry;
+import com.taobao.tair.Result;
 import com.taobao.tair.ResultCode;
 import com.taobao.tair.impl.DefaultTairManager;
 
@@ -30,12 +32,36 @@ public class TmallTair implements IRichBolt {
 	@Override
 	public void execute(Tuple input) {
 		long minuteTime = input.getLong(0);
-		System.out.println("###########"+minuteTime);
 		double money = input.getDouble(1);
-		ResultCode resultCode = tairManager.put(RaceConfig.TairNamespace, RaceConfig.prex_tmall + minuteTime, money);
-		if(resultCode.isSuccess()) {
-			System.out.println("insert success");
+		String key = RaceConfig.prex_tmall + minuteTime;
+		/*ResultCode rc = tairManager.put(RaceConfig.TairNamespace, key, money);
+		if(rc.isSuccess()) {
+			System.out.println("############首次存取: "+ key +"  "+money);
+		} else if(ResultCode.VERERROR.equals(rc)) {
+			Result<DataEntry> result = tairManager.get(RaceConfig.TairNamespace, key);
+			int version = result.getValue().getVersion();
+			double amount = (double) result.getValue().getValue();
+			tairManager.put(RaceConfig.TairNamespace, key, money+amount, version);
+			System.out.println("##再次存取: "+ key+"  "+(money+amount));
+		}*/
+		Result<DataEntry> result = tairManager.get(RaceConfig.TairNamespace, key);
+		if(result.isSuccess()) {
+			if(result.getValue() != null){
+				double amount = (double) result.getValue().getValue();
+				int version = result.getValue().getVersion();
+				tairManager.put(RaceConfig.TairNamespace, key, money+amount/*, version*/);
+				System.out.println("##再次存取: "+ key+"  "+(money+amount));
+			}else {
+				tairManager.put(RaceConfig.TairNamespace, key, money);
+				System.out.println("############首次存取: "+ key +"  "+money);
+			}
 		}
+		
+//		System.out.println(RaceConfig.prex_tmall + minuteTime+": "+money);
+//		if(resultCode.isSuccess()) {
+//			System.out.println(tairManager.get(RaceConfig.TairNamespace, RaceConfig.prex_tmall + minuteTime));
+//			System.out.println("tmall insert success");
+//		}
 	}
 
 	@Override

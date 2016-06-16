@@ -16,6 +16,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import static com.alibaba.middleware.race.judge.MsgType.TaobaoOrderMsg;
 import static com.alibaba.middleware.race.judge.MsgType.TmallOrderMsg;
 
+import static com.alibaba.middleware.race.RaceConfig.*;
+
 /**
  * Created by g on 2016/6/7.
  * 由于在本地进行暴力求结果，适用于小规模测试，大规模的话，还是两个topo，一个暴力的，一个非暴力的，对比结果
@@ -79,35 +81,35 @@ public class judger {
         //录入完成，输入结果
         for(long time:TaobaoCounter.keySet()){
             double amount=TaobaoCounter.get(time);
-            String tairKey="platformTaobao_"+time;
+//            String tairKey=prex_taobao+time;
             System.out.println("   TaoBao time:"+time+" CheckAmount:"+amount);
-            Result<DataEntry> data= tairManager.get(RaceConfig.TairNamespace,tairKey);
-            double jstromRes=(double)data.getValue().getValue();
-            boolean same=jstromRes==amount?true:false;
-            System.out.println(same+"   TaoBao time:"+time+" CheckAmount:"+amount+"  jstromRes"+jstromRes);
+//            Result<DataEntry> data= tairManager.get(RaceConfig.TairNamespace,tairKey);
+//            double jstromRes=(double)data.getValue().getValue();
+//            boolean same=jstromRes==amount?true:false;
+//            System.out.println(same+"   TaoBao time:"+time+" CheckAmount:"+amount+"  jstromRes"+jstromRes);
         }
         for(long time:TmallCounter.keySet()){
             double amount=TmallCounter.get(time);
-            String tairKey="platformTmall_"+time;
+//            String tairKey=prex_tmall+time;
             System.out.println("   Tmall time:"+time+" CheckAmount:"+amount);
-            Result<DataEntry> data= tairManager.get(RaceConfig.TairNamespace,tairKey);
-            double jstromRes=(double)data.getValue().getValue();
-            boolean same=jstromRes==amount?true:false;
-            System.out.println(same+"   Tmall time:"+time+" CheckAmount:"+amount+"  jstromRes"+jstromRes);
+//            Result<DataEntry> data= tairManager.get(RaceConfig.TairNamespace,tairKey);
+//            double jstromRes=(double)data.getValue().getValue();
+//            boolean same=jstromRes==amount?true:false;
+//            System.out.println(same+"   Tmall time:"+time+" CheckAmount:"+amount+"  jstromRes"+jstromRes);
         }
-        for(long time:PcCounter.keySet()){
-            double pcAmount=PcCounter.get(time);
-            double mobileAmount=PcCounter.get(time);
-            //假设每个分钟，既有pc，又有mobile
-            Double ratio=mobileAmount/pcAmount;
-            String res=String.format("%.2f",ratio);
-            System.out.println("   Pay  time:"+time+" Ratio:"+res);
-            String tairKey="ratio_"+time;
-            Result<DataEntry> data= tairManager.get(RaceConfig.TairNamespace,tairKey);
-            double jstromRes=(double)data.getValue().getValue();
-            boolean same=jstromRes==ratio?true:false;
-            System.out.println(same+"   Pay time:"+time+" CheckRatio:"+res+"  jstromRes"+jstromRes);
-        }
+//        for(long time:PcCounter.keySet()){
+//            double pcAmount=PcCounter.get(time);
+//            double mobileAmount=PcCounter.get(time);
+//            //假设每个分钟，既有pc，又有mobile
+//            Double ratio=mobileAmount/pcAmount;
+//            String res=String.format("%.2f",ratio);
+//            System.out.println("   Pay  time:"+time+" Ratio:"+res);
+//            String tairKey="ratio_"+time;
+//            Result<DataEntry> data= tairManager.get(RaceConfig.TairNamespace,tairKey);
+//            double jstromRes=(double)data.getValue().getValue();
+//            boolean same=jstromRes==ratio?true:false;
+//            System.out.println(same+"   Pay time:"+time+" CheckRatio:"+res+"  jstromRes"+jstromRes);
+//        }
         //清空
         clear();
     }
@@ -120,7 +122,8 @@ public class judger {
         mobileCounter.clear();
     }
     public static long getMinite(long time){
-        return time-time% RaceTopology.Interval;
+//        return time-time% RaceTopology.Interval;
+    	return time/RaceTopology.Interval*60;
     }
     public static void putInMap(HashMap<Long,Double> map,long time,double amount){
         Double alreadyAmout=map.get(time);
